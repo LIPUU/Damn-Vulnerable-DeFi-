@@ -25,12 +25,14 @@ contract PuppetPool is ReentrancyGuard {
     error NotDepositingEnoughCollateral();
     error TransferFailed();
 
+    // uniswapPairAddress单纯被用来做预言机
     constructor(address tokenAddress, address uniswapPairAddress) {
         token = DamnValuableToken(tokenAddress);
         uniswapPair = uniswapPairAddress;
     }
 
     // Allows borrowing `borrowAmount` of tokens by first depositing two times their value in ETH
+    // borrow token的时候至少要带着2倍的value值来
     function borrow(uint256 borrowAmount) public payable nonReentrant {
         uint256 depositRequired = calculateDepositRequired(borrowAmount);
 

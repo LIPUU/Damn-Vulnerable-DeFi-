@@ -7,7 +7,7 @@ contract Utilities is Test {
     bytes32 internal nextUser = keccak256(abi.encodePacked("user address"));
 
     function getNextUserAddress() external returns (address payable) {
-        //bytes32 to address conversion
+        // bytes32 to address conversion
         address payable user = payable(address(uint160(uint256(nextUser))));
         nextUser = keccak256(abi.encodePacked(nextUser));
         return user;

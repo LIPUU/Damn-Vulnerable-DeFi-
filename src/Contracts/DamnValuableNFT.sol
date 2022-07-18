@@ -12,7 +12,7 @@ import {Counters} from "openzeppelin-contracts/utils/Counters.sol";
  * @notice Implementation of a mintable and burnable NFT with role-based access controls
  */
 contract DamnValuableNFT is ERC721, ERC721Burnable, AccessControl {
-    using Counters for Counters.Counter;
+    using Counters for Counters.Counter; // 这个用法还是可以的,很solidityly
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     Counters.Counter private _tokenIdCounter;
@@ -28,11 +28,12 @@ contract DamnValuableNFT is ERC721, ERC721Burnable, AccessControl {
         returns (uint256)
     {
         uint256 tokenId = _tokenIdCounter.current();
-        _safeMint(to, tokenId);
+        _safeMint(to, tokenId); // 直接用counter作为tokenId
         _tokenIdCounter.increment();
         return tokenId;
     }
 
+    // 
     function supportsInterface(bytes4 interfaceId)
         public
         view

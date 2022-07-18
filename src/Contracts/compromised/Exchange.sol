@@ -31,6 +31,8 @@ contract Exchange is ReentrancyGuard {
         oracle = TrustfulOracle(oracleAddress);
     }
 
+    // 根据预言机报价的中位价格进行购买(mint)
+    // 并退回多余的钱
     function buyOne() external payable nonReentrant returns (uint256) {
         uint256 amountPaidInWei = msg.value;
         if (amountPaidInWei == 0) revert ValueMustBeGreaterThanZero();
@@ -48,6 +50,8 @@ contract Exchange is ReentrancyGuard {
         return tokenId;
     }
 
+    // 通过预言机报价获得NFT的价格,然后卖给本合约,本合约直接打钱给用户,并销毁到手的NFT
+    // 本次exploit必然是扭曲预言机价格然后把合约卖给Exchange交易所
     function sellOne(uint256 tokenId) external nonReentrant {
         if (msg.sender != token.ownerOf(tokenId)) revert SellerMustBeTheOwner();
         if (token.getApproved(tokenId) != address(this))

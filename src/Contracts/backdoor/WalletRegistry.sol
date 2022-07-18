@@ -14,6 +14,7 @@ import {GnosisSafeProxy} from "gnosis/proxies/GnosisSafeProxy.sol";
  * @dev The registry has embedded verifications to ensure only legitimate Gnosis Safe wallets are stored.
  * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
  */
+
 contract WalletRegistry is IProxyCreationCallback, Ownable {
     uint256 private constant MAX_OWNERS = 1;
     uint256 private constant MAX_THRESHOLD = 1;

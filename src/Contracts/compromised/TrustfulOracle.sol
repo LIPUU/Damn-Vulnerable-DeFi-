@@ -12,7 +12,9 @@ import {AccessControlEnumerable} from "openzeppelin-contracts/access/AccessContr
 contract TrustfulOracle is AccessControlEnumerable {
     bytes32 public constant TRUSTED_SOURCE_ROLE =
         keccak256("TRUSTED_SOURCE_ROLE");
-    bytes32 public constant INITIALIZER_ROLE = keccak256("INITIALIZER_ROLE");
+
+    bytes32 public constant INITIALIZER_ROLE = 
+        keccak256("INITIALIZER_ROLE");
 
     // Source address => (symbol => price)
     mapping(address => mapping(string => uint256)) private pricesBySource;
@@ -66,9 +68,14 @@ contract TrustfulOracle is AccessControlEnumerable {
         for (uint256 i = 0; i < sources.length; i++) {
             _setPrice(sources[i], symbols[i], prices[i]);
         }
-        renounceRole(INITIALIZER_ROLE, msg.sender);
+        renounceRole(INITIALIZER_ROLE, msg.sender); // 执行完上操作之后就剥夺合约部署者的初始权限
     }
 
+    // 预言机的价格更新也是由可信reporter address从外部对postPrice进行调用完成的
+    // 该函数不断被调用,价格不断被更新,预言机就能够不断向外界提供最新的价格
+    // 但是好像没看到跟时间相关的条件
+    // 而且是仅仅根据symbol进行的,没有对NFT合约地址进行鉴定
+    // 但由于reporter address我们不能控制,因此即使没有上面的限制也无所谓
     function postPrice(string calldata symbol, uint256 newPrice)
         external
         onlyTrustedSource

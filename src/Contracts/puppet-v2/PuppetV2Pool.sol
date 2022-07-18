@@ -88,6 +88,8 @@ contract PuppetV2Pool {
     }
 
     // Fetch the price from Uniswap v2 using the official libraries
+    // return amout of ETH which is equal to token amout pass in
+    // 但是仍然没用预言机,用的还是瞬时价格
     function _getOracleQuote(uint256 amount) private view returns (uint256) {
         (uint256 reservesWETH, uint256 reservesToken) = UniswapV2Library
             .getReserves(_uniswapFactory, address(_weth), address(_token));

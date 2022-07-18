@@ -28,6 +28,9 @@ contract SelfiePool is ReentrancyGuard {
         _;
     }
 
+    // 专门的投票币其实就是DamnValuableTokenSnapshot, governanceAddress利用这个币的一些机制对调用者进行操作
+    // 而SelfiePool就是这个调用者
+    // 也就是说本池子合约利用DamnValuableTokenSnapshot币进行governance,但是它同时又提供该币种的闪电贷
     constructor(address tokenAddress, address governanceAddress) {
         token = ERC20Snapshot(tokenAddress);
         governance = SimpleGovernance(governanceAddress);

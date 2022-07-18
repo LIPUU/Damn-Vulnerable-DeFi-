@@ -8,6 +8,7 @@ import {Address} from "openzeppelin-contracts/utils/Address.sol";
  * @title SimpleGovernance
  * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
  */
+
 contract SimpleGovernance {
     using Address for address;
 
@@ -37,10 +38,13 @@ contract SimpleGovernance {
         if (governanceTokenAddress == address(0))
             revert GovernanceTokenCannotBeZeroAddress();
 
+        // 这是个类型转换, 但address变量的名字暗示了DamnValuableTokenSnapshot这个代币具有治理功能
         governanceToken = DamnValuableTokenSnapshot(governanceTokenAddress);
         actionCounter = 1;
     }
 
+    // 只要满足一定的条件,就拥有投票权, 拥有投票权就能够把自己想要的执行的操作纳入actions中
+    // 调用queueAction的时候只要满足该条件,提案就能成功进入队列
     function queueAction(
         address receiver,
         bytes calldata data,
@@ -70,7 +74,9 @@ contract SimpleGovernance {
         GovernanceAction storage actionToExecute = actions[actionId];
         actionToExecute.executedAt = block.timestamp;
 
-        actionToExecute.receiver.functionCallWithValue(
+        // 这个所谓的action其实就是带着Ether调用目标的某个函数
+        // 转走的不知道是谁的Ether
+        actionToExecute.receiver.functionCallWithValue (
             actionToExecute.data,
             actionToExecute.weiAmount
         );
@@ -95,7 +101,10 @@ contract SimpleGovernance {
     }
 
     function _hasEnoughVotes(address account) private view returns (bool) {
-        uint256 balance = governanceToken.getBalanceAtLastSnapshot(account);
+        // account在上次dvt进行快照时的余额
+        uint256 balance = governanceToken.getBalanceAtLastSnapshot(account); 
+
+        // 要求account在上次快照时拥有半数以上的币数才返回true
         uint256 halfTotalSupply = governanceToken
             .getTotalSupplyAtLastSnapshot() / 2;
         return balance > halfTotalSupply;

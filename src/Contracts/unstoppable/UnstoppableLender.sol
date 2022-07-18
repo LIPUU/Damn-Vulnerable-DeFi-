@@ -24,6 +24,10 @@ contract UnstoppableLender is ReentrancyGuard {
         damnValuableToken = IERC20(tokenAddress);
     }
 
+    // 存damnValuableToken这个ERC20代币到本合约中. 本合约是代币池
+    // 在本代币池中自己维护一个自己应有的余额
+    // 如果直接通过transfer给本代币池打dvt而不通过approve->transferFrom的方式,
+    // 会导致 dvt.balanceOf(address(this))!=poolBalance
     function depositTokens(uint256 amount) external nonReentrant {
         if (amount == 0) revert MustDepositOneTokenMinimum();
         // Transfer token from sender. Sender must have first approved them.
@@ -31,6 +35,7 @@ contract UnstoppableLender is ReentrancyGuard {
         poolBalance = poolBalance + amount;
     }
 
+    // 
     function flashLoan(uint256 borrowAmount) external nonReentrant {
         if (borrowAmount == 0) revert MustBorrowOneTokenMinimum();
 
@@ -39,9 +44,12 @@ contract UnstoppableLender is ReentrancyGuard {
 
         // Ensured by the protocol via the `depositTokens` function
         if (poolBalance != balanceBefore) revert AssertionViolated();
+        // 这儿可能永远不成立
+
 
         damnValuableToken.transfer(msg.sender, borrowAmount);
 
+        // 用户拿着贷到手的钱执行套利操作去了
         IReceiver(msg.sender).receiveTokens(
             address(damnValuableToken),
             borrowAmount

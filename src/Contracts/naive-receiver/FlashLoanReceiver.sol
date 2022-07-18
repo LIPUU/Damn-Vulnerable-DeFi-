@@ -35,7 +35,9 @@ contract FlashLoanReceiver {
     }
 
     // Internal function where the funds received are used
-    function _executeActionDuringFlashLoan() internal {}
+    function _executeActionDuringFlashLoan() internal {
+        // 套利逻辑应该写在这里面
+    }
 
     // Allow deposits of ETH
     receive() external payable {}

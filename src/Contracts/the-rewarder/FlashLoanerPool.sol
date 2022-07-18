@@ -26,7 +26,7 @@ contract FlashLoanerPool is ReentrancyGuard {
     function flashLoan(uint256 amount) external nonReentrant {
         uint256 balanceBefore = liquidityToken.balanceOf(address(this));
         if (amount > balanceBefore) revert NotEnoughTokensInPool();
-        if (!msg.sender.isContract()) revert BorrowerMustBeAContract();
+        if (!msg.sender.isContract()) revert BorrowerMustBeAContract(); // 只有合约能发起闪电贷
 
         liquidityToken.transfer(msg.sender, amount);
 
@@ -37,4 +37,5 @@ contract FlashLoanerPool is ReentrancyGuard {
         if (liquidityToken.balanceOf(address(this)) < balanceBefore)
             revert FlashLoanHasNotBeenPaidBack();
     }
+
 }

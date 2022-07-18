@@ -25,7 +25,9 @@ contract ReceiverUnstoppable {
     /// @dev Pool will call this function during the flash loan
     function receiveTokens(address tokenAddress, uint256 amount) external {
         if (msg.sender != address(pool)) revert SenderMustBePool();
+        
         IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+        // 模拟套利. 中间没有套利,直接把资金还回去了
     }
 
     function executeFlashLoan(uint256 amount) external {
